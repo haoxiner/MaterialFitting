@@ -139,6 +139,7 @@
     <ClCompile Include="Run.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CalculateGridWeight.h" />
     <ClInclude Include="Mathematics.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

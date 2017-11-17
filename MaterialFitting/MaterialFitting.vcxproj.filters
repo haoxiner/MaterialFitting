@@ -19,5 +19,8 @@
     <ClInclude Include="Mathematics.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="CalculateGridWeight.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
