@@ -27,9 +27,11 @@ struct Float3
 };
 inline Float3 Normalize(const Float3& v)
 {
-	Float length = v.Length();
-	Float inv_length = 1.0 / length;
-	return v * inv_length;
+	//Float length = v.Length();
+	//Float inv_length = 1.0 / length;
+	//return v * inv_length;
+	Float d = std::sqrt(v.x_ * v.x_ + v.y_ * v.y_ + v.z_ * v.z_);
+	return { v.x_ / d, v.y_ / d, v.z_ / d };
 }
 inline Float3 UniformSampleSphere(Float cosTheta, Float randForPhi)
 {
@@ -38,12 +40,21 @@ inline Float3 UniformSampleSphere(Float cosTheta, Float randForPhi)
 	auto phi = 2 * hx::PI * randForPhi;
 	return Float3(sinTheta * std::cos(phi), sinTheta * std::sin(phi), cosTheta);
 }
-Float2 MapUpperSphereToPlane(const Float3& v)
+inline Float2 MapUpperSphereToPlane(const Float3& v)
 {
 	Float tmp = 1.0 / (std::abs(v.x_) + std::abs(v.y_) + std::abs(v.z_));
 	return Float2(v.x_ * tmp, v.y_ * tmp);
 }
-Float Ward(Float alpha, const Float3& wi, const Float3& wo)
+inline Float3 MapPlaneToUpperSphere(const Float2& v)
+{
+	Float3 n;
+	n.z_ = 1.0 - std::abs(v.x_) - std::abs(v.y_);
+	n.x_ = v.x_;
+	n.y_ = v.y_;
+	n = Normalize(n);
+	return n;
+}
+inline Float Ward(Float alpha, const Float3& wi, const Float3& wo)
 {
 	auto h = Normalize(wi + wo);
 	auto cosThetaI = wi.z_;
