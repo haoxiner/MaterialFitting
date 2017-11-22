@@ -60,34 +60,34 @@ inline Float3 MapPlaneToUpperSphere(const Float2& v)
 }
 inline Float Ward(Float alpha, const Float3& wi, const Float3& wo)
 {
-	if (wi.z_ <= 0.0 || wo.z_ <= 0.0) {
-		return 0.0;
-	}
-	auto h = Normalize(wi + wo);
-	auto cosThetaI = wi.z_;
-	auto cosThetaO = wo.z_;
-	
-	Float tanThetaH = 0.0;
-	
-	if (std::abs(h.x_) > 1e-10) {
-		tanThetaH = h.y_ / h.x_;
-	}
-
-	auto tanThetaH2 = tanThetaH * tanThetaH;
-	auto a2 = alpha * alpha;
-	return std::exp(-tanThetaH2 / a2) / (4.0 * PI * a2 * std::sqrt(cosThetaI * cosThetaO));
-
 	//if (wi.z_ <= 0.0 || wo.z_ <= 0.0) {
 	//	return 0.0;
 	//}
-	//auto H = Normalize(wi + wo);
-	//auto factor1 = 1.0 / (4.0 * PI * alpha * alpha *
-	//	std::sqrt(wi.z_ * wo.z_));
+	//auto h = Normalize(wi + wo);
+	//auto cosThetaI = wi.z_;
+	//auto cosThetaO = wo.z_;
+	//
+	//Float tanThetaH = 0.0;
+	//
+	//if (std::abs(h.x_) > 1e-10) {
+	//	tanThetaH = h.y_ / h.x_;
+	//}
 
-	//Float factor2 = H.x_ / alpha, factor3 = H.y_ / alpha;
-	//Float exponent = -(factor2*factor2 + factor3*factor3) / (H.z_*H.z_);
-	//Float specRef = factor1 * std::exp(exponent);
+	//auto tanThetaH2 = tanThetaH * tanThetaH;
+	//auto a2 = alpha * alpha;
+	//return std::exp(-tanThetaH2 / a2) / (4.0 * PI * a2 * std::sqrt(cosThetaI * cosThetaO));
 
-	//return specRef * wo.z_;
+	if (wi.z_ <= 0.0 || wo.z_ <= 0.0) {
+		return 0.0;
+	}
+	auto H = Normalize(wi + wo);
+	auto factor1 = 1.0 / (4.0 * PI * alpha * alpha *
+		std::sqrt(wi.z_ * wo.z_));
+
+	Float factor2 = H.x_ / alpha, factor3 = H.y_ / alpha;
+	Float exponent = -(factor2*factor2 + factor3*factor3) / (H.z_*H.z_);
+	Float specRef = factor1 * std::exp(exponent);
+
+	return specRef * wo.z_;
 }
 }

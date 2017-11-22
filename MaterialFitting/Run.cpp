@@ -78,7 +78,7 @@ void GenGridWardPdf()
 				cdfX[i] = cdfX[i - 1] + pdfX[i];
 				cdfYAfterX[i] = cdfYAfterX[i - 1] + pdfYAfterX[i];
 			}
-			std::cerr << cdfX.back() << std::endl;
+			std::cerr << std::accumulate(gridWeight.begin(), gridWeight.end(), 0.0) << std::endl;
 		}
 	}
 }
