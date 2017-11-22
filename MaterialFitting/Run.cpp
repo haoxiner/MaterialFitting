@@ -34,23 +34,51 @@ void GenGridCenter()
 
 void GenGridWardPdf()
 {
-	std::ifstream file(R"(F:/gridWeight.bin)", std::ios::binary);
-	std::vector<unsigned int> gridWeight(NUM_OF_GRID);
-	file.read((char*)gridWeight.data(), gridWeight.size() * sizeof(unsigned int));
-	file.close();
+	// grid weight
+	std::ifstream gridWeightFile(R"(F:/gridWeight.bin)", std::ios::binary);
+	std::vector<hx::Float> gridWeight(NUM_OF_GRID);
+	gridWeightFile.read((char*)gridWeight.data(), gridWeight.size() * sizeof(gridWeight[0]));
+	gridWeightFile.close();
 
-	std::vector<hx::Float3> gridCenter(NUM_OF_GRID);
-	for (int y = 0; y < WIDTH; y++) {
-		for (int x = 0; x < WIDTH; x++) {
-			gridCenter[x + y * WIDTH] = hx::MapPlaneToUpperSphere({ SIN_45_DEGREE * (x + y + 1.0) - 1.0, SIN_45_DEGREE * (y - x) });
-		}
-	}
+	// grid center
+	//std::vector<hx::Float3> gridCenter(NUM_OF_GRID);
+	//std::ifstream gridCenterFile(R"(F:/gridCenter.bin)", std::ios::binary);
+	//gridCenterFile.read((char*)gridCenter.data(), gridCenter.size() * sizeof(gridCenter[0]));
+	//gridCenterFile.close();
 
-	std::vector<hx::Float> alphas = { 0.007 };
+	// grid ward pdf
+	std::vector<hx::Float> gridWardPdf(NUM_OF_GRID);
+	
+	std::vector<hx::Float> alphas = { 0.5 };
 	for (auto alpha : alphas) {
 		hx::MapPlaneToUpperSphere({});
 		for (int degree = 0; degree < 90; degree++) {
+			hx::Float cosTheta = std::cos(hx::DegreeToRadian(static_cast<hx::Float>(degree)));
+			hx::Float3 wo = { std::sqrt(1.0 - cosTheta * cosTheta), 0.0, cosTheta };
 
+			std::vector<hx::Float> pdfX(WIDTH);
+			std::vector<hx::Float> pdfYAfterX(WIDTH);
+			for (int y = 0; y < WIDTH; y++) {
+				for (int x = 0; x < WIDTH; x++) {
+					int idx = x + y * WIDTH;
+					hx::Float px = (x + 0.5) / WIDTH * SQRT2;
+					hx::Float py = (y + 0.5) / WIDTH * SQRT2;
+					auto gridCenter = hx::MapPlaneToUpperSphere({ SIN_45_DEGREE * (px + py) - 1.0, SIN_45_DEGREE * (py - px) });
+					gridWardPdf[idx] = hx::Ward(alpha, gridCenter, wo) * gridWeight[idx];
+
+					pdfX[x] += gridWardPdf[idx];
+					pdfYAfterX[y] += gridWardPdf[idx];
+				}
+			}
+			std::vector<hx::Float> cdfX(WIDTH);
+			std::vector<hx::Float> cdfYAfterX(WIDTH);
+			cdfX[0] = pdfX[0];
+			cdfYAfterX[0] = pdfYAfterX[0];
+			for (int i = 1; i < WIDTH; i++) {
+				cdfX[i] = cdfX[i - 1] + pdfX[i];
+				cdfYAfterX[i] = cdfYAfterX[i - 1] + pdfYAfterX[i];
+			}
+			std::cerr << cdfX.back() << std::endl;
 		}
 	}
 }
@@ -59,6 +87,7 @@ int main()
 {
 	/*CalculateGridWeight();
 	GenGridPdf();*/
-	GenGridCenter();
+	//GenGridCenter();
+	GenGridWardPdf();
 	return 0;
 }
