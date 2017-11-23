@@ -48,16 +48,15 @@ void GenGridWardPdf()
 
 	// grid ward pdf
 	std::vector<hx::Float> gridWardPdf(NUM_OF_GRID);
-	
-	std::vector<hx::Float> alphas = { 0.5 };
+	std::vector<hx::Float> alphas = { 0.29303 };
+	std::uniform_real_distribution<hx::Float> uniformDistribution(0.0, std::nextafter(1.0, std::numeric_limits<hx::Float>::max()));
+	std::default_random_engine generator;
 	for (auto alpha : alphas) {
-		hx::MapPlaneToUpperSphere({});
 		for (int degree = 0; degree < 90; degree++) {
 			hx::Float cosTheta = std::cos(hx::DegreeToRadian(static_cast<hx::Float>(degree)));
 			hx::Float3 wo = { std::sqrt(1.0 - cosTheta * cosTheta), 0.0, cosTheta };
 
 			std::vector<hx::Float> pdfX(WIDTH);
-			std::vector<hx::Float> pdfYAfterX(WIDTH);
 			for (int y = 0; y < WIDTH; y++) {
 				for (int x = 0; x < WIDTH; x++) {
 					int idx = x + y * WIDTH;
@@ -67,18 +66,55 @@ void GenGridWardPdf()
 					gridWardPdf[idx] = hx::Ward(alpha, gridCenter, wo) * gridWeight[idx];
 
 					pdfX[x] += gridWardPdf[idx];
-					pdfYAfterX[y] += gridWardPdf[idx];
 				}
 			}
+
+			// sum of pdf must be 1.0
+			auto sum = std::accumulate(gridWardPdf.begin(), gridWardPdf.end(), 0.0);
+			for (auto&& v : gridWardPdf) {
+				v /= sum;
+			}
+			for (auto&& v : pdfX) {
+				v /= sum;
+			}
+			// cdf of x
 			std::vector<hx::Float> cdfX(WIDTH);
-			std::vector<hx::Float> cdfYAfterX(WIDTH);
 			cdfX[0] = pdfX[0];
-			cdfYAfterX[0] = pdfYAfterX[0];
 			for (int i = 1; i < WIDTH; i++) {
 				cdfX[i] = cdfX[i - 1] + pdfX[i];
-				cdfYAfterX[i] = cdfYAfterX[i - 1] + pdfYAfterX[i];
 			}
-			std::cerr << std::accumulate(gridWeight.begin(), gridWeight.end(), 0.0) << std::endl;
+			// inverse cdf
+			std::vector<hx::Float> cdfYAfterX(WIDTH);
+
+			// sample vmf
+			hx::Float3 vmfVectorSum;
+			const int NUM_OF_SAMPLES = 4096;
+			for (int sampleIdx = 0; sampleIdx < NUM_OF_SAMPLES; sampleIdx++) {
+				auto lowp = std::lower_bound(cdfX.begin(), cdfX.end(), uniformDistribution(generator));
+				int x = lowp - cdfX.begin();
+				if (pdfX[x] == 0.0) {
+					continue;
+				}
+				// cdf of y after x
+				int idx = x + 0 * WIDTH;
+				cdfYAfterX[0] = gridWardPdf[idx] / pdfX[x];
+				for (int y = 1; y < WIDTH; y++) {
+					int idx = x + y * WIDTH;
+					cdfYAfterX[y] = cdfYAfterX[y - 1] + gridWardPdf[idx] / pdfX[x];
+				}
+				lowp = std::lower_bound(cdfYAfterX.begin(), cdfYAfterX.end(), uniformDistribution(generator));
+				int y = lowp - cdfYAfterX.begin();
+
+				// sample vector
+				hx::Float px = (x + 0.5) / WIDTH * SQRT2;
+				hx::Float py = (y + 0.5) / WIDTH * SQRT2;
+				auto gridCenter = hx::MapPlaneToUpperSphere({ SIN_45_DEGREE * (px + py) - 1.0, SIN_45_DEGREE * (py - px) });
+				vmfVectorSum += gridCenter;
+			}
+			hx::Float R = vmfVectorSum.Length() / NUM_OF_SAMPLES;
+			auto R2 = R * R;
+			auto k = R * (3 - R2) / (1 - R2);
+			std::cerr << hx::DegreeToRadian(degree) << ", " << k << std::endl;
 		}
 	}
 }

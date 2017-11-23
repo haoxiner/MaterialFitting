@@ -81,13 +81,16 @@ inline Float Ward(Float alpha, const Float3& wi, const Float3& wo)
 		return 0.0;
 	}
 	auto H = Normalize(wi + wo);
-	auto factor1 = 1.0 / (4.0 * PI * alpha * alpha *
-		std::sqrt(wi.z_ * wo.z_));
+	auto a2 = alpha * alpha;
 
-	Float factor2 = H.x_ / alpha, factor3 = H.y_ / alpha;
-	Float exponent = -(factor2*factor2 + factor3*factor3) / (H.z_*H.z_);
+	auto factor1 = 1.0 / (4.0 * PI * a2 * /*std::sqrt*/(wi.z_ * wo.z_));
+	auto cosThetaH2 = H.z_ * H.z_;
+	
+	auto exponent = -(1.0 - cosThetaH2) / (cosThetaH2 * a2);
+
 	Float specRef = factor1 * std::exp(exponent);
 
-	return specRef * wo.z_;
+	//return specRef;
+	return specRef;
 }
 }
