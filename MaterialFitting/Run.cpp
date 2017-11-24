@@ -1,4 +1,5 @@
 #include "CalculateGridWeight.h"
+#include <string>
 
 void GenGridPdf()
 {
@@ -32,7 +33,7 @@ void GenGridCenter()
 	file.close();
 }
 
-void GenGridWardPdf()
+void GenVMF()
 {
 	// grid weight
 	std::ifstream gridWeightFile(R"(F:/gridWeight.bin)", std::ios::binary);
@@ -46,13 +47,27 @@ void GenGridWardPdf()
 	//gridCenterFile.read((char*)gridCenter.data(), gridCenter.size() * sizeof(gridCenter[0]));
 	//gridCenterFile.close();
 
+	
+	std::ofstream wo(R"(F:/wo.bin)", std::ios::binary);
+	const int NUM_OF_DEGREE_SAMPLES = 1024;
+	for (int degreeSampleIdx = 0; degreeSampleIdx < NUM_OF_DEGREE_SAMPLES; degreeSampleIdx++) {
+		hx::Float degree = degreeSampleIdx / (double)NUM_OF_DEGREE_SAMPLES * 90.0;
+		auto radian = hx::DegreeToRadian(static_cast<hx::Float>(degree));
+		wo.write((char*)&radian, sizeof(radian));
+	}
 	// grid ward pdf
-	std::vector<hx::Float> gridWardPdf(NUM_OF_GRID);
-	std::vector<hx::Float> alphas = { 0.29303 };
-	std::uniform_real_distribution<hx::Float> uniformDistribution(0.0, std::nextafter(1.0, std::numeric_limits<hx::Float>::max()));
-	std::default_random_engine generator;
-	for (auto alpha : alphas) {
-		for (int degree = 0; degree < 90; degree++) {
+	
+	std::vector<hx::Float> alphas = { 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007, 0.007};
+	omp_set_num_threads(8);
+#pragma omp parallel for
+	for (int alphaIdx = 0; alphaIdx < alphas.size(); alphaIdx++) {
+		std::uniform_real_distribution<hx::Float> uniformDistribution(0.0, std::nextafter(1.0, std::numeric_limits<hx::Float>::max()));
+		std::default_random_engine generator;
+		std::vector<hx::Float> gridWardPdf(NUM_OF_GRID);
+		auto alpha = alphas[alphaIdx];
+		std::ofstream alphaFile("F:/alpha" + std::to_string(alphaIdx + 1) + ".bin", std::ios::binary);
+		for (int degreeSampleIdx = 0; degreeSampleIdx <= NUM_OF_DEGREE_SAMPLES; degreeSampleIdx++) {
+			hx::Float degree = degreeSampleIdx / (double) NUM_OF_DEGREE_SAMPLES * 90.0;
 			hx::Float cosTheta = std::cos(hx::DegreeToRadian(static_cast<hx::Float>(degree)));
 			hx::Float3 wo = { std::sqrt(1.0 - cosTheta * cosTheta), 0.0, cosTheta };
 
@@ -64,7 +79,6 @@ void GenGridWardPdf()
 					hx::Float py = (y + 0.5) / WIDTH * SQRT2;
 					auto gridCenter = hx::MapPlaneToUpperSphere({ SIN_45_DEGREE * (px + py) - 1.0, SIN_45_DEGREE * (py - px) });
 					gridWardPdf[idx] = hx::Ward(alpha, gridCenter, wo) * gridWeight[idx];
-
 					pdfX[x] += gridWardPdf[idx];
 				}
 			}
@@ -88,7 +102,7 @@ void GenGridWardPdf()
 
 			// sample vmf
 			hx::Float3 vmfVectorSum;
-			const int NUM_OF_SAMPLES = 4096;
+			const int NUM_OF_SAMPLES = 4096 * 4096;
 			for (int sampleIdx = 0; sampleIdx < NUM_OF_SAMPLES; sampleIdx++) {
 				auto lowp = std::lower_bound(cdfX.begin(), cdfX.end(), uniformDistribution(generator));
 				int x = lowp - cdfX.begin();
@@ -114,7 +128,7 @@ void GenGridWardPdf()
 			hx::Float R = vmfVectorSum.Length() / NUM_OF_SAMPLES;
 			auto R2 = R * R;
 			auto k = R * (3 - R2) / (1 - R2);
-			std::cerr << hx::DegreeToRadian(degree) << ", " << k << std::endl;
+			alphaFile.write((char*)&k, sizeof(k));
 		}
 	}
 }
@@ -124,6 +138,6 @@ int main()
 	/*CalculateGridWeight();
 	GenGridPdf();*/
 	//GenGridCenter();
-	GenGridWardPdf();
+	GenVMF();
 	return 0;
 }
