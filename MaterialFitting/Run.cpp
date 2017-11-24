@@ -130,7 +130,7 @@ void GenVMF()
 				int idx = x + 0 * WIDTH;
 				cdfYAfterX[0] = gridWardPdf[idx] / pdfX[x];
 				for (int y = 1; y < WIDTH; y++) {
-					int idx = x + y * WIDTH;
+					idx = x + y * WIDTH;
 					cdfYAfterX[y] = cdfYAfterX[y - 1] + gridWardPdf[idx] / pdfX[x];
 				}
 				lowp = std::lower_bound(cdfYAfterX.begin(), cdfYAfterX.end(), uniformDistribution(generator));
@@ -140,7 +140,7 @@ void GenVMF()
 				//hx::Float px = (x + 0.5) / WIDTH * SQRT2;
 				//hx::Float py = (y + 0.5) / WIDTH * SQRT2;
 				//auto gridCenter = hx::MapPlaneToUpperSphere({ SIN_45_DEGREE * (px + py) - 1.0, SIN_45_DEGREE * (py - px) });
-				vmfVectorSum += gridCenter[idx];
+				vmfVectorSum += gridCenter[x + y * WIDTH];
 			}
 			hx::Float R = vmfVectorSum.Length() / NUM_OF_SAMPLES;
 			auto R2 = R * R;
