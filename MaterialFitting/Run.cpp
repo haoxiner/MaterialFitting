@@ -82,7 +82,7 @@ void GenVMF()
 		std::vector<hx::Float> gridWardPdf(NUM_OF_GRID);
 		auto alpha = alphas[alphaIdx];
 		std::ofstream alphaFile("F:/alpha" + std::to_string(alphaIdx + 1) + ".bin", std::ios::binary);
-		for (int degreeSampleIdx = 0; degreeSampleIdx <= NUM_OF_DEGREE_SAMPLES; degreeSampleIdx++) {
+		for (int degreeSampleIdx = 0; degreeSampleIdx < NUM_OF_DEGREE_SAMPLES; degreeSampleIdx++) {
 			hx::Float degree = degreeSampleIdx / (double) NUM_OF_DEGREE_SAMPLES * 90.0;
 			hx::Float cosTheta = std::cos(hx::DegreeToRadian(static_cast<hx::Float>(degree)));
 			hx::Float3 wo = { std::sqrt(1.0 - cosTheta * cosTheta), 0.0, cosTheta };
@@ -119,7 +119,7 @@ void GenVMF()
 
 			// sample vmf
 			hx::Float3 vmfVectorSum;
-			const int NUM_OF_SAMPLES = 4096;
+			const int NUM_OF_SAMPLES = 4096 * 4;
 			for (int sampleIdx = 0; sampleIdx < NUM_OF_SAMPLES; sampleIdx++) {
 				auto lowp = std::lower_bound(cdfX.begin(), cdfX.end(), uniformDistribution(generator));
 				int x = lowp - cdfX.begin();
