@@ -219,7 +219,6 @@ void GenVMF_GGX()
 		for (int degreeSampleIdx = 0; degreeSampleIdx < NUM_OF_DEGREE_SAMPLES; degreeSampleIdx++) {
 			hx::Float degree = degreeSampleIdx / (double)NUM_OF_DEGREE_SAMPLES * 90.0;
 			hx::Float cosTheta = std::cos(hx::DegreeToRadian(static_cast<hx::Float>(degree)));
-
 			std::vector<hx::Float> pdfX(WIDTH);
 			for (int y = 0; y < WIDTH; y++) {
 				for (int x = 0; x < WIDTH; x++) {
@@ -228,7 +227,7 @@ void GenVMF_GGX()
 					//hx::Float py = (y + 0.5) / WIDTH * SQRT2;
 					//auto gridCenter = hx::MapPlaneToUpperSphere({ SIN_45_DEGREE * (px + py) - 1.0, SIN_45_DEGREE * (py - px) });
 
-					gridGGXPdf[idx] = hx::GGX(alpha, cosTheta) * gridWeight[idx];
+					gridGGXPdf[idx] = hx::GGX(alpha, gridCenter[idx].z_) * gridWeight[idx];
 					pdfX[x] += gridGGXPdf[idx];
 				}
 			}

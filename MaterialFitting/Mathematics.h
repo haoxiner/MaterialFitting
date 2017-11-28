@@ -28,6 +28,7 @@ struct Float3
 	Float3& operator*=(const Float scalar) { x_ *= scalar; y_ *= scalar; z_ *= scalar; return *this; }
 	Float Square() const { return x_ * x_ + y_ * y_ + z_ * z_; }
 	Float Length() const { return std::sqrt(Square()); }
+	static Float Dot(const Float3& lhs, const Float3& rhs) { return lhs.x_ * rhs.x_ + lhs.y_ * rhs.y_ + lhs.z_ * rhs.z_; }
 };
 inline Float3 Normalize(const Float3& v)
 {
@@ -98,6 +99,9 @@ inline Float GGX(Float alpha, Float NdotH)
 	auto a2 = alpha * alpha;
 	auto NdotH2 = NdotH * NdotH;
 	auto factor1 = (NdotH2 * (a2 - 1) + 1);
+	if (factor1 < 1e-10) {
+		return 1.0;
+	}
 	return a2 / (PI * factor1 * factor1);
 }
 }
