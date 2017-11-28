@@ -3,10 +3,9 @@
 #include <iostream>
 #include <random>
 #include <fstream>
-#include <Windows.h>
+#include <chrono>
 #include <omp.h>
 #include "Mathematics.h"
-#undef max
 
 constexpr int WIDTH = 4096;
 constexpr int NUM_OF_GRID = WIDTH * WIDTH;
@@ -14,7 +13,7 @@ constexpr int SAMPLES_PER_GRID = 1024;
 const double SQRT2 = std::sqrt(2.0);
 const double SIN_45_DEGREE = SQRT2 / 2.0;
 
-const int NUM_OF_THREAD = 7;
+const int NUM_OF_THREAD = 8;
 
 int ClampInsideGrid(int value)
 {
@@ -32,10 +31,10 @@ void CalculateGridWeight()
 	std::ofstream gridSampleFile(R"(F:/gridSample.bin)", std::ios::binary);
 	std::ofstream gridVectorFile(R"(F:/gridVector.bin)", std::ios::binary);
 
-	LARGE_INTEGER t1, t2, tc;
-	QueryPerformanceFrequency(&tc);
-	QueryPerformanceCounter(&t1);
-	std::cerr << "Running..." << std::endl;
+	//LARGE_INTEGER t1, t2, tc;
+	//QueryPerformanceFrequency(&tc);
+	//QueryPerformanceCounter(&t1);
+	//std::cerr << "Running..." << std::endl;
 
 	std::vector<unsigned int> grid(NUM_OF_GRID);
 	std::vector<hx::Float3> gridVector(NUM_OF_GRID);
@@ -52,7 +51,14 @@ void CalculateGridWeight()
 		v.resize(NUM_OF_GRID);
 	}
 	std::vector<std::default_random_engine> generator(NUM_OF_THREAD);
-
+	typedef std::chrono::high_resolution_clock myclock;
+	myclock::time_point beginning = myclock::now();
+	// obtain a seed from the timer
+	myclock::duration dt = myclock::now() - beginning;
+	unsigned seed = dt.count();
+	for (int i = 0; i < NUM_OF_THREAD; i++) {
+		generator[i].seed(seed + i);
+	}
 #pragma omp parallel for
 	for (int j = 0; j < SAMPLES_PER_GRID; j++) {
 		auto threadID = omp_get_thread_num();
@@ -93,8 +99,8 @@ void CalculateGridWeight()
 		gridVector[i] *= (1.0 / grid[i]);
 		gridVector[i] = hx::Normalize(gridVector[i]);
 	}
-	QueryPerformanceCounter(&t2);
-	std::cerr << (t2.QuadPart - t1.QuadPart) / tc.QuadPart << "s" << std::endl;
+	//QueryPerformanceCounter(&t2);
+	//std::cerr << (t2.QuadPart - t1.QuadPart) / tc.QuadPart << "s" << std::endl;
 
 	gridSampleFile.write((const char*)grid.data(), sizeof(grid[0]) * grid.size());
 	gridSampleFile.close();

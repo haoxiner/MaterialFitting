@@ -93,4 +93,11 @@ inline Float Ward(Float alpha, const Float3& wi, const Float3& wo)
 	//return specRef;
 	return specRef;
 }
+inline Float GGX(Float alpha, Float NdotH)
+{
+	auto a2 = alpha * alpha;
+	auto NdotH2 = NdotH * NdotH;
+	auto factor1 = (NdotH2 * (a2 - 1) + 1);
+	return a2 / (PI * factor1 * factor1);
+}
 }
