@@ -136,10 +136,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Hammersley.cpp" />
     <ClCompile Include="Run.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CalculateGridWeight.h" />
+    <ClInclude Include="Hammersley.h" />
     <ClInclude Include="Mathematics.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

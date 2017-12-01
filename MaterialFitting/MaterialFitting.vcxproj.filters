@@ -14,12 +14,18 @@
     <ClCompile Include="Run.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Hammersley.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Mathematics.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="CalculateGridWeight.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Hammersley.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

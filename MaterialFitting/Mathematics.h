@@ -26,6 +26,7 @@ struct Float3
 	Float3& operator+=(const Float3& v) { x_ += v.x_; y_ += v.y_; z_ += v.z_; return *this; }
 	Float3 operator*(const Float scalar) const { return Float3(x_ * scalar, y_ * scalar, z_ * scalar); }
 	Float3& operator*=(const Float scalar) { x_ *= scalar; y_ *= scalar; z_ *= scalar; return *this; }
+	Float3& operator-(const Float3& v) const { return Float3(x_ - v.x_, y_ - v.y_, z_ - v.z_); }
 	Float Square() const { return x_ * x_ + y_ * y_ + z_ * z_; }
 	Float Length() const { return std::sqrt(Square()); }
 	static Float Dot(const Float3& lhs, const Float3& rhs) { return lhs.x_ * rhs.x_ + lhs.y_ * rhs.y_ + lhs.z_ * rhs.z_; }
@@ -93,6 +94,21 @@ inline Float Ward(Float alpha, const Float3& wi, const Float3& wo)
 
 	//return specRef;
 	return specRef;
+}
+inline Float3 SampleWard(Float alpha, Float u, Float v, const Float3& wo)
+{
+	Float phiH = std::atan(std::tan(2.0 * PI * v));
+	//if (v > 0.5f)
+	//	phiH += PI;
+	Float cosPhiH = std::cos(phiH);
+	Float sinPhiH = std::sqrt(1.0 - cosPhiH*cosPhiH);
+	Float a2 = alpha * alpha;
+	Float thetaH = std::atan(std::sqrt(-std::log(u) / (1.0 / (a2))));
+
+	auto sinThetaH = std::sin(thetaH);
+	auto cosThetaH = std::sqrt(1.0 - sinThetaH*sinThetaH);
+	Float3 H = {sinThetaH * cosPhiH, sinThetaH * sinPhiH, cosThetaH};
+	return H * (2.0 * Float3::Dot(wo, H)) - wo;
 }
 inline Float GGX(Float alpha, Float NdotH)
 {

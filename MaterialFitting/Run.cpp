@@ -1,4 +1,5 @@
 #include "CalculateGridWeight.h"
+#include "Hammersley.h"
 #include <string>
 #include <Windows.h>
 #undef max
@@ -25,6 +26,8 @@ void TestGenAlpha()
 		std::cerr << cnt << ": " << v << std::endl;
 		++cnt;
 	}
+	std::ofstream file("F:/alphas.bin", std::ios::binary);
+	file.write((char*)as.data(), sizeof(double)*as.size());
 }
 
 void GenGridPdf()
@@ -96,14 +99,14 @@ void GenVMF_WARD()
 	std::vector<hx::Float> alphas = GenAlpha();
 	omp_set_num_threads(NUM_OF_THREAD);
 #pragma omp parallel for
-	for (int alphaIdx = 0; alphaIdx < alphas.size(); alphaIdx++) {
+	for (int alphaIdx = 39; alphaIdx < alphas.size(); alphaIdx++) {
 		std::uniform_real_distribution<hx::Float> uniformDistributionInclusive(0.0, std::nextafter(1.0, std::numeric_limits<hx::Float>::max()));
 		std::uniform_real_distribution<hx::Float> uniformDistributionExclusive(0.0, 1.0);
 		auto threadID = omp_get_thread_num();
 		auto& generator = generators[threadID];
 		std::vector<hx::Float> gridWardPdf(NUM_OF_GRID);
 		auto alpha = alphas[alphaIdx];
-		std::ofstream alphaFile("F:/alpha" + std::to_string(alphaIdx + 1) + ".bin", std::ios::binary);
+		std::ofstream alphaFile("F:/importance/alpha" + std::to_string(alphaIdx + 1) + ".bin", std::ios::binary);
 		for (int degreeSampleIdx = 0; degreeSampleIdx < NUM_OF_DEGREE_SAMPLES; degreeSampleIdx++) {
 			hx::Float degree = degreeSampleIdx / (double) NUM_OF_DEGREE_SAMPLES * 90.0;
 			hx::Float cosTheta = std::cos(hx::DegreeToRadian(static_cast<hx::Float>(degree)));
@@ -141,7 +144,7 @@ void GenVMF_WARD()
 
 			// sample vmf
 			hx::Float3 vmfVectorSum;
-			const int NUM_OF_SAMPLES = 4096 * 4;
+			const int NUM_OF_SAMPLES = 4096*4;
 			for (int sampleIdx = 0; sampleIdx < NUM_OF_SAMPLES; sampleIdx++) {
 				auto lowp = std::lower_bound(cdfX.begin(), cdfX.end(), uniformDistributionInclusive(generator));
 				int x = lowp - cdfX.begin();
@@ -162,6 +165,61 @@ void GenVMF_WARD()
 				hx::Float px = ((hx::Float)x + uniformDistributionExclusive(generator)) / WIDTH * SQRT2;
 				hx::Float py = ((hx::Float)y + uniformDistributionExclusive(generator)) / WIDTH * SQRT2;
 				vmfVectorSum += hx::MapPlaneToUpperSphere({ SIN_45_DEGREE * (px + py) - 1.0, SIN_45_DEGREE * (py - px) });
+			}
+			hx::Float R = vmfVectorSum.Length() / NUM_OF_SAMPLES;
+			auto R2 = R * R;
+			auto k = R * (3 - R2) / (1 - R2);
+			alphaFile.write((char*)&k, sizeof(k));
+		}
+	}
+}
+
+void GenVMF_Ward_ImportanceSampling()
+{
+	const int NUM_OF_DEGREE_SAMPLES = 1024;
+	std::ofstream wo(R"(F:/wo.bin)", std::ios::binary);
+	for (int degreeSampleIdx = 0; degreeSampleIdx < NUM_OF_DEGREE_SAMPLES; degreeSampleIdx++) {
+		hx::Float degree = degreeSampleIdx / (double)NUM_OF_DEGREE_SAMPLES * 90.0;
+		auto radian = hx::DegreeToRadian(static_cast<hx::Float>(degree));
+		wo.write((char*)&radian, sizeof(radian));
+	}
+	wo.close();
+	// grid ward pdf
+	typedef std::chrono::high_resolution_clock myclock;
+	myclock::time_point beginning = myclock::now();
+	// obtain a seed from the timer
+	myclock::duration dt = myclock::now() - beginning;
+	unsigned seed = dt.count();
+	std::vector<std::default_random_engine> generators(NUM_OF_THREAD);
+	for (int i = 0; i < NUM_OF_THREAD; i++) {
+		generators[i].seed(seed + i);
+	}
+
+	std::vector<hx::Float> alphas = GenAlpha();
+	omp_set_num_threads(NUM_OF_THREAD);
+#pragma omp parallel for
+	for (int alphaIdx = 0; alphaIdx < alphas.size(); alphaIdx++) {
+		std::uniform_real_distribution<hx::Float> uniformDistributionInclusive(0.0, std::nextafter(1.0, std::numeric_limits<hx::Float>::max()));
+		std::uniform_real_distribution<hx::Float> uniformDistributionExclusive(0.0, 1.0);
+		std::uniform_real_distribution<hx::Float> uniformDistribution(std::nextafter(0.0, std::numeric_limits<hx::Float>::max()), 1.0);
+		auto threadID = omp_get_thread_num();
+		auto& generator = generators[threadID];
+		std::vector<hx::Float> gridWardPdf(NUM_OF_GRID);
+		auto alpha = alphas[alphaIdx];
+		std::ofstream alphaFile("F:/importance/alpha" + std::to_string(alphaIdx + 1) + ".bin", std::ios::binary);
+		for (int degreeSampleIdx = 0; degreeSampleIdx < NUM_OF_DEGREE_SAMPLES; degreeSampleIdx++) {
+			hx::Float degree = degreeSampleIdx / (double)NUM_OF_DEGREE_SAMPLES * 90.0;
+			hx::Float cosTheta = std::cos(hx::DegreeToRadian(static_cast<hx::Float>(degree)));
+			hx::Float3 wo = { std::sqrt(1.0 - cosTheta * cosTheta), 0.0, cosTheta };
+
+			// sample vmf
+			hx::Float3 vmfVectorSum;
+			const int NUM_OF_SAMPLES = 4096*16;
+			for (int sampleIdx = 0; sampleIdx < NUM_OF_SAMPLES; sampleIdx++) {
+				// importance sample ward -> wi
+				// hx::Ward(alpha, sampleWi, wo)
+				hx::Float3 sampleWi = hx::SampleWard(alpha, uniformDistribution(generator), uniformDistribution(generator), wo);
+				vmfVectorSum += sampleWi;
 			}
 			hx::Float R = vmfVectorSum.Length() / NUM_OF_SAMPLES;
 			auto R2 = R * R;
@@ -290,12 +348,14 @@ int main()
 	//CalculateGridWeight();
 	//GenGridPdf();
 	//GenGridCenter();
-	GenVMF_WARD();
+	//GenVMF_Ward_ImportanceSampling();
+	//TestGenAlpha();
+
 	QueryPerformanceCounter(&t2);
 	std::cerr << (t2.QuadPart - t1.QuadPart) / tc.QuadPart << "s" << std::endl;
 
 	std::cerr << "Gen GGX" << std::endl;
-	GenVMF_GGX();
+	//GenVMF_GGX();
 	//TestGenAlpha();
 	QueryPerformanceCounter(&t3);
 	std::cerr << (t3.QuadPart - t2.QuadPart) / tc.QuadPart << "s" << std::endl;
