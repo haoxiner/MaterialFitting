@@ -99,14 +99,14 @@ void GenVMF_WARD()
 	std::vector<hx::Float> alphas = GenAlpha();
 	omp_set_num_threads(NUM_OF_THREAD);
 #pragma omp parallel for
-	for (int alphaIdx = 39; alphaIdx < alphas.size(); alphaIdx++) {
+	for (int alphaIdx = 0; alphaIdx < alphas.size(); alphaIdx++) {
 		std::uniform_real_distribution<hx::Float> uniformDistributionInclusive(0.0, std::nextafter(1.0, std::numeric_limits<hx::Float>::max()));
 		std::uniform_real_distribution<hx::Float> uniformDistributionExclusive(0.0, 1.0);
 		auto threadID = omp_get_thread_num();
 		auto& generator = generators[threadID];
 		std::vector<hx::Float> gridWardPdf(NUM_OF_GRID);
 		auto alpha = alphas[alphaIdx];
-		std::ofstream alphaFile("F:/importance/alpha" + std::to_string(alphaIdx + 1) + ".bin", std::ios::binary);
+		std::ofstream alphaFile("F:/cosine/cosine_ward_alpha" + std::to_string(alphaIdx + 1) + ".bin", std::ios::binary);
 		for (int degreeSampleIdx = 0; degreeSampleIdx < NUM_OF_DEGREE_SAMPLES; degreeSampleIdx++) {
 			hx::Float degree = degreeSampleIdx / (double) NUM_OF_DEGREE_SAMPLES * 90.0;
 			hx::Float cosTheta = std::cos(hx::DegreeToRadian(static_cast<hx::Float>(degree)));
@@ -350,11 +350,10 @@ int main()
 	//GenGridCenter();
 	//GenVMF_Ward_ImportanceSampling();
 	//TestGenAlpha();
-
+	GenVMF_WARD();
 	QueryPerformanceCounter(&t2);
 	std::cerr << (t2.QuadPart - t1.QuadPart) / tc.QuadPart << "s" << std::endl;
 
-	std::cerr << "Gen GGX" << std::endl;
 	//GenVMF_GGX();
 	//TestGenAlpha();
 	QueryPerformanceCounter(&t3);

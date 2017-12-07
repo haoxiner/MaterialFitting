@@ -93,7 +93,8 @@ inline Float Ward(Float alpha, const Float3& wi, const Float3& wo)
 	Float specRef = factor1 * std::exp(exponent);
 
 	//return specRef;
-	return specRef;
+	// pdf * cosThetaI
+	return specRef * wi.z_;
 }
 inline Float3 SampleWard(Float alpha, Float u, Float v, const Float3& wo)
 {
