@@ -339,6 +339,49 @@ void GenVMF_GGX()
 	}
 }
 
+void GenVMFWeight()
+{
+	const int NUM_OF_DEGREE_SAMPLES = 1024;
+	std::vector<hx::Float> alphas = GenAlpha();
+
+	for (int alphaIdx = 0; alphaIdx < alphas.size(); alphaIdx++) {
+		std::ifstream alphaFile("F:/cosine/cosine_ward_alpha" + std::to_string(alphaIdx + 1) + ".bin", std::ios::binary);
+		std::vector<hx::Float> ks(NUM_OF_DEGREE_SAMPLES);
+		alphaFile.read((char*)ks.data(), ks.size() * sizeof(ks[0]));
+		alphaFile.close();
+		std::vector<hx::Float> ws(NUM_OF_DEGREE_SAMPLES);
+		auto alpha = alphas[alphaIdx];
+		omp_set_num_threads(NUM_OF_THREAD);
+#pragma omp parallel for
+		for (int degreeSampleIdx = 0; degreeSampleIdx < NUM_OF_DEGREE_SAMPLES; degreeSampleIdx++) {
+			hx::Float degree = degreeSampleIdx / (double)NUM_OF_DEGREE_SAMPLES * 90.0;
+			hx::Float cosTheta = std::cos(hx::DegreeToRadian(static_cast<hx::Float>(degree)));
+			hx::Float3 wo = { std::sqrt(1.0 - cosTheta * cosTheta), 0.0, cosTheta };
+			hx::Float wWardSum = 0.0, wVMFSum = 0.0;
+			for (int y = 0; y < WIDTH; y++) {
+				for (int x = 0; x < WIDTH; x++) {
+					int idx = x + y * WIDTH;
+					hx::Float px = (x + 0.5) / WIDTH * SQRT2;
+					hx::Float py = (y + 0.5) / WIDTH * SQRT2;
+					auto gridCenter = hx::MapPlaneToUpperSphere({ SIN_45_DEGREE * (px + py) - 1.0, SIN_45_DEGREE * (py - px) });
+
+					auto wWard = hx::Ward(alpha, gridCenter, wo);
+					auto wi = hx::Float3(-wo.x_, -wo.y_, wo.z_);
+					auto wVMF = hx::vMF(wi, ks[degreeSampleIdx], gridCenter);
+					wWardSum += wWard;
+					wVMFSum += wVMF;
+				}
+			}
+			
+			ws[degreeSampleIdx] = (wWardSum / wVMFSum);
+		}
+		std::ofstream wFile("F:/cosine/w" + std::to_string(alphaIdx + 1) + ".bin", std::ios::binary);
+		wFile.write((char*)ws.data(), ws.size() * sizeof(ws[0]));
+		wFile.close();
+		std::cerr << alphaIdx + 1 << "ok" << std::endl;
+	}
+}
+
 int main()
 {
 	LARGE_INTEGER t1, t2, t3, tc;
@@ -350,7 +393,8 @@ int main()
 	//GenGridCenter();
 	//GenVMF_Ward_ImportanceSampling();
 	//TestGenAlpha();
-	GenVMF_WARD();
+	//GenVMF_WARD();
+	GenVMFWeight();
 	QueryPerformanceCounter(&t2);
 	std::cerr << (t2.QuadPart - t1.QuadPart) / tc.QuadPart << "s" << std::endl;
 

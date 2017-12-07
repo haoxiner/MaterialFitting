@@ -96,6 +96,15 @@ inline Float Ward(Float alpha, const Float3& wi, const Float3& wo)
 	// pdf * cosThetaI
 	return specRef * wi.z_;
 }
+inline Float vMF(const Float3& mu, const Float k, const Float3& x)
+{
+	auto factor1 = k * Float3::Dot(mu, x);
+	if (k < 100) {
+		return k / 2.0 / PI / (std::exp(k - factor1) - std::exp(-k - factor1));
+	} else {
+		return k / 2.0 / PI * std::exp(k * (Float3::Dot(mu, x) - 1.0));
+	}
+}
 inline Float3 SampleWard(Float alpha, Float u, Float v, const Float3& wo)
 {
 	Float phiH = std::atan(std::tan(2.0 * PI * v));
